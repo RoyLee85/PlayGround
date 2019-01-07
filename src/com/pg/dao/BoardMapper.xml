@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>  
+<!DOCTYPE mapper   
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"   
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">  
+
+<mapper namespace="BoardDao">  
+	<sql id="search">
+		<choose>
+			<when test="keyField == 'all'">
+				WHERE title like '%'||#{keyWord}||'%'
+				OR name like '%'||#{keyWord}||'%'
+				OR content like '%'||#{keyWord}||'%'
+				OR orgfilename like '%'||#{keyWord}||'%'
+			</when>
+			<when test="keyField == 'title' or 'name' or 'content'">
+				where ${keyField} like '%'||#{keyWord}||'%'
+			</when>
+		</choose>
+	</sql>
+	
+	<select id="boardList" parameterType="map" resultType="BoardVO">
+        SELECT SEQ,NAME,TITLE,CONTENT,PASS,HIT,REGDATE,REF,LEV,STEP FROM (SELECT A.*, ROWNUM RNUM FROM 
+        (SELECT * FROM BOARD <if test="keyField != '' or null"><include refid="search"/></if> ORDER BY REF DESC,STEP ASC)A)
+		<![CDATA[
+		 where RNUM >= #{start} AND RNUM <= #{end}		
+		]]>			
+	</select>
+	
+	<select id="boardCount" parameterType="map" resultType="Integer">
+		SELECT COUNT(*)	FROM BOARD
+		<if test="keyField != '' or null"><include refid="search"/></if>
+	</select>
+	
+	<insert id="boardInsert" parameterType="BoardVO">
+		INSERT INTO BOARD VALUES(#{seq},#{name},#{title},#{content},#{pass},0,SYSDATE,#{orgfilename},#{savefilename},#{ref},#{lev},#{step})
+	</insert>
+	
+	<update id="stepUp" parameterType="BoardVO">
+		UPDATE BOARD SET STEP=STEP+1 WHERE REF=#{ref} and STEP <![CDATA[>]]>	#{step} 
+	</update>
+	
+	<select id="getInfo" parameterType="int" resultType="BoardVO">
+		SELECT * FROM BOARD WHERE SEQ=#{seq}
+	</select>
+	
+	<update id="addHit" parameterType="int">
+		UPDATE BOARD SET HIT=HIT+1 WHERE SEQ=#{seq}
+	</update>
+	
+	<delete id="boardDelete" parameterType="int">
+		DELETE FROM BOARD WHERE SEQ=#{seq}
+	</delete>
+	
+	<select id="getMaxSeq" resultType="int">
+		select NVL(max(seq),0) maxnum from board
+	</select>
+	
+	<update id="updateFilename" parameterType="BoardVO">
+		UPDATE BOARD SET ORGFILENAME=#{orgfilename} WHERE SEQ=#{seq}
+	</update>
+	
+	<update id="updateOk" parameterType="BoardVO">
+		UPDATE BOARD SET title=#{title},name=#{name},content=#{content}, ORGFILENAME=#{orgfilename}, SAVEFILENAME=#{savefilename} WHERE SEQ=#{seq}
+	</update>
+	
+</mapper>
